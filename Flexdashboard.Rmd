@@ -1,0 +1,137 @@
+---
+title: "Shark Tank Exploratory Analysis"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library('flexdashboard')
+library('tidyverse')
+library('rsconnect')
+shark_student <- read_csv('shark_student.csv')
+shark_student1 <- shark_student
+shark_student1 <- shark_student1 %>%
+  mutate_at(.vars = vars(ReceiveOffer:CompanyState,  BarbaraCorcoran:Guest),
+            .funs = as_factor) %>%
+  mutate(Eth1 = fct_recode(Eth1, African_American = "1", White = "2", Asian = "3", Latino= "4", No_presenter= "0")) %>%
+  mutate(Eth2 = fct_recode(Eth2, African_American = "1", White = "2", Asian = "3", Latino= "4", No_presenter= "0")) %>%
+  mutate(Eth3 = fct_recode(Eth3, African_American = "1", White = "2", Asian = "3", Latino= "4", No_presenter= "0")) %>%
+  mutate(Eth4 = fct_recode(Eth4, African_American = "1", White = "2", Asian = "3", Latino= "4", No_presenter= "0")) %>%
+  mutate(Eth5 = fct_recode(Eth5, African_American = "1", White = "2", Asian = "3", Latino= "4", No_presenter= "0")) %>%
+  mutate_at(.vars = vars(ReceiveOffer:Deal_No, Male1:MixedGenderPresenters, BarbaraCorcoran:Guest),
+            .funs = forcats::fct_recode,
+            "Yes" = "1",
+            "No" = "0")
+```
+
+Overview
+=====================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Chart Deals made
+
+```{r}
+ggplot(shark_student1,aes(Deal_Yes)) + geom_bar(position = "stack") + theme_classic() + ggtitle("Deals made with Sharks")
+```
+
+> 54.6% of contestants on Shark tank made a deal.
+
+
+
+
+### Chart Seasons
+
+```{r}
+shark_season <- shark_student1 %>% mutate(season = substr(SeasonEpisode, 12,14)) %>% select(Company,Deal_Yes, season) %>% group_by(season)
+
+ggplot(shark_season,aes(season, fill = Deal_Yes)) +geom_bar(position = "fill") + ggtitle("Deal_Yes by Season")
+```
+
+> As the show progressed into later seasons more deals were made.
+
+Row 
+-----------------------------------------------------------------------
+
+### Chart Business type "Fill"
+
+```{r}
+shark_gather_bus <- shark_student1 %>% select(Company, Deal_Yes, Novelties:`Uncertain / Other`) %>% pivot_longer(!Company:Deal_Yes, names_to = "BusinessType", values_to = "count") %>% filter(count == "Yes") %>% select(!count)  
+
+ggplot(shark_gather_bus, aes(x = BusinessType, fill = Deal_Yes))+ geom_bar(position = "fill") + ggtitle("Deals made by business type") + theme_classic() + theme(axis.text.x = element_text(angle = 90)) 
+```
+
+### Chart Business Type "Count"
+
+```{r}
+ggplot(shark_gather_bus, aes(x = BusinessType, fill = Deal_Yes))+ geom_bar(position = "dodge") + ggtitle("Deals made by business type") + theme_classic() + theme(axis.text.x = element_text(angle = 90)) 
+```
+
+
+Demographics 
+=========================================
+
+Row
+-----------------------------------------------------------
+
+### Chart Ethnicity
+
+```{r}
+shark_gather_eth <- shark_student1 %>% select(Company, Deal_Yes, Eth1:Eth5) %>% pivot_longer(!Company:Deal_Yes, names_to = "Ethnicity", values_to = "count") %>% group_by(Company) %>% filter(count != "No_presenter")
+
+ggplot(shark_gather_eth, aes(count, stat = "count", fill = count)) + geom_bar() + facet_wrap(~Deal_Yes) + xlab("Ethnicity") + ggtitle("Deals made by ethnicity") + theme(axis.text.x = element_text(angle = 60)) 
+```
+
+> White and Asian presenters tended to recieve a higher proportion of deals than African American or Latino Presenters. 
+
+
+
+### Chart Gender
+
+```{r}
+Shark_gather_gen <- shark_student1 %>% select(Company, Deal_Yes, MalePresenter:MixedGenderPresenters) %>% pivot_longer(!Company:Deal_Yes, names_to = "gender", values_to = "count") %>% filter(count == "Yes") %>% select(!count)
+
+ggplot(Shark_gather_gen, aes(gender, fill = Deal_Yes)) + geom_bar(position = "fill") + theme_classic() + ggtitle("Deals made by gender of presenters")
+
+```
+
+> Female and Mixed Gender presenting teams tended to receive more deals than Male teams.
+
+
+Boxplots
+===================================================
+
+Row
+-------------------------------------------------------
+
+### Chart Amount Requested
+
+```{r}
+shark_student1 %>% 
+  ggplot(aes(x=Deal_Yes, y =AmountRequested)) +
+  geom_boxplot() + coord_flip() + theme_classic() + ggtitle("Boxplot of amount requested for Deals made")
+```
+
+Row
+------------------------------------------------------------
+
+### Chart Equity Requested
+
+```{r}
+shark_student1 %>% 
+  ggplot(aes(x= Deal_Yes, y=EquityRequested)) +
+  geom_boxplot() + coord_flip() + theme_classic()+ ggtitle("Boxplot of Equity requested for Deals made")
+```
+
+### Chart Implied Valuation
+
+```{r}
+shark_student1 %>% 
+  ggplot(aes(x= Deal_Yes, y =ImpliedValuationRequested)) +
+  geom_boxplot() + coord_flip() + theme_classic() + ggtitle("Boxplot of Implied Valuation for Deals made")
+```
+
